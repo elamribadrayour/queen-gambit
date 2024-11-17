@@ -1,0 +1,9 @@
+[package]
+name = "queen-gambit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nannou = "0.19.0"
+nannou_wgpu = "0.19.0"
+rand = "0.8.5"
