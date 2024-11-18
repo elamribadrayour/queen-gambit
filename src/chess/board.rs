@@ -10,7 +10,14 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(win: Rect, rng: &mut dyn RngCore, board_size: usize, nb_queens: usize) -> Self {
+    pub fn new(
+        win: Rect,
+        rng: &mut dyn RngCore,
+        board_size: usize,
+        nb_queens: usize,
+        mutation_likelihood: f32,
+        crossover_likelihood: f32,
+    ) -> Self {
         let mut squares = vec![];
         let size = win.w().min(win.h()) / board_size as f32;
 
@@ -23,10 +30,18 @@ impl Board {
             });
         });
 
-        Self {
-            squares,
+        let queens = Queens::new(
+            rng,
+            nb_queens,
             board_size,
-            queens: Queens::new(rng, nb_queens, board_size),
+            mutation_likelihood,
+            crossover_likelihood,
+        );
+
+        Self {
+            queens,
+            board_size,
+            squares,
         }
     }
 
@@ -43,7 +58,7 @@ impl Board {
         (square.x, square.y)
     }
 
-    pub fn evaluate(&mut self) -> f32 {
+    pub fn evaluate(&mut self) {
         self.queens.evaluate()
     }
 
