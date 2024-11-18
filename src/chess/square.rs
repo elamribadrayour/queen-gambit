@@ -1,4 +1,3 @@
-
 use nannou::color::Rgb;
 use nannou::color::{BLACK, WHITE};
 
@@ -10,6 +9,10 @@ pub struct Square {
 
 impl Square {
     pub fn new(x: f32, y: f32, color: &str) -> Self {
-        Self { x, y, color: if color == "black" { BLACK } else { WHITE } }
+        Self {
+            x,
+            y,
+            color: if color == "black" { BLACK } else { WHITE },
+        }
     }
 }

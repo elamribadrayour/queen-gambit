@@ -2,8 +2,8 @@ mod chess;
 
 use chess::Board;
 
-use rand::RngCore;
 use nannou::prelude::*;
+use rand::RngCore;
 use std::f32;
 
 fn main() {
@@ -18,15 +18,16 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .view(view)
-        .size(800, 800)
-        .build()
-        .unwrap();
+    app.new_window().view(view).size(800, 800).build().unwrap();
 
     let mut rng = Box::new(rand::thread_rng());
     let board = Board::new(app.window_rect(), &mut *rng, 8, 8);
-    Model { board, iteration: 0, scores: vec![], rng }
+    Model {
+        board,
+        iteration: 0,
+        scores: vec![],
+        rng,
+    }
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
@@ -42,8 +43,8 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     let worst_score = model.scores.iter().cloned().fold(f32::MAX, f32::min);
 
     println!(
-        "iteration: {}\t worst: {:.2}\t best: {:.2}\t avg: {:.2}\t avg last 5: {:.2}\t score: {:.2}",
-        model.iteration, worst_score, best_score, average_score, average_score_last_5, model.scores.last().unwrap()
+        "iteration: {}\t len: {}\t worst: {:.2}\t best: {:.2}\t avg: {:.2}\t avg last 5: {:.2}\t score: {:.2}",
+        model.iteration, model.board.queens().count(), worst_score, best_score, average_score, average_score_last_5, model.scores.last().unwrap()
     );
 }
 
@@ -62,11 +63,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
     });
 
     model.board.queens().for_each(|queen| {
-        let position = model.board.position(queen.position);
+        let position = model.board.position(queen.position());
         draw.texture(&queen.texture(app))
             .x_y(position.0, position.1)
             .w_h(square_size, square_size);
     });
+
+    draw.text(&format!("fitness: {:.2}", model.board.fitness()))
+        .x_y(win.left() + 50.0, win.bottom() + 20.0)
+        .color(GREEN);
 
     draw.to_frame(app, &frame).unwrap();
 }

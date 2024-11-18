@@ -6,6 +6,8 @@ Welcome to the **Chess Evolution Simulator**. This project simulates the evoluti
 
 The **Chess Evolution Simulator** demonstrates the principles of genetic algorithms through a chessboard simulation. It uses the `nannou` framework for graphical representation and `rand` for randomness in genetic operations. The project illustrates how queens on a chessboard can evolve over iterations to optimize their positions based on fitness evaluations, aiming to solve the N-Queens Problem.
 
+![Chess Evolution Simulator](./assets/chess-evolution-simulator.gif)
+
 ## 🌟 Features
 
 - **Chessboard Visualization**: Displays the chessboard and updates it in real-time with each iteration.

@@ -1,7 +1,7 @@
 mod board;
 mod queen;
-mod square;
 mod queens;
+mod square;
 
 pub use board::Board;
 pub use queen::Queen;

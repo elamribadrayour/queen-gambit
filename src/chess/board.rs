@@ -1,7 +1,7 @@
-use crate::chess::{Queen, Square, Queens};
+use crate::chess::{Queen, Queens, Square};
 
-use rand::RngCore;
 use nannou::geom::Rect;
+use rand::RngCore;
 
 pub struct Board {
     pub queens: Queens,
@@ -14,16 +14,20 @@ impl Board {
         let mut squares = vec![];
         let size = win.w().min(win.h()) / board_size as f32;
 
-        for i in 0..board_size {
-            for j in 0..board_size {
+        (0..board_size).for_each(|i| {
+            (0..board_size).for_each(|j| {
                 let x = win.left() + size * i as f32 + size / 2.0;
                 let y = win.bottom() + size * j as f32 + size / 2.0;
                 let color = if (i + j) % 2 == 0 { "black" } else { "white" };
                 squares.push(Square::new(x, y, color));
-            }
-        }
+            });
+        });
 
-        Self { squares, board_size, queens: Queens::new(rng, nb_queens, board_size) }
+        Self {
+            squares,
+            board_size,
+            queens: Queens::new(rng, nb_queens, board_size),
+        }
     }
 
     pub fn squares(&self) -> impl Iterator<Item = &Square> {
@@ -39,7 +43,7 @@ impl Board {
         (square.x, square.y)
     }
 
-    pub fn evaluate(&self) -> f32 {
+    pub fn evaluate(&mut self) -> f32 {
         self.queens.evaluate()
     }
 
@@ -49,5 +53,9 @@ impl Board {
 
     pub fn mutate(&mut self, rng: &mut dyn RngCore) {
         self.queens.mutate(rng, self.board_size);
+    }
+
+    pub fn fitness(&self) -> f32 {
+        self.queens.fitness()
     }
 }

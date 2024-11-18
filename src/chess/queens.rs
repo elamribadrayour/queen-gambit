@@ -1,64 +1,118 @@
+use std::collections::HashSet;
+
 use crate::chess::Queen;
 
 use rand::{Rng, RngCore};
-
-
 pub struct Queens {
+    fitness: f32,
     queens: Vec<Queen>,
 }
 
 impl Queens {
     pub fn new(rng: &mut dyn RngCore, nb_queens: usize, board_size: usize) -> Self {
+        let queens = (0..nb_queens)
+            .map(|_| {
+                let x = rng.gen_range(0..board_size);
+                let y = rng.gen_range(0..board_size);
+                Queen::new((x, y))
+            })
+            .collect();
 
-        let queens = (0..nb_queens).map(|_| {
-            let x = rng.gen_range(0..board_size);
-            let y = rng.gen_range(0..board_size);
-            Queen::new((x, y))
-        }).collect();
-
-        Self { queens }
+        Self {
+            fitness: 0.0,
+            queens,
+        }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Queen> {
         self.queens.iter()
     }
 
-    pub fn evaluate(&self) -> f32 {
-        let mut score = 0.0;
-        for (i, queen1) in self.queens.iter().enumerate() {
-            for queen2 in self.queens.iter().skip(i + 1) {
-                let (x1, y1) = queen1.position;
-                let (x2, y2) = queen2.position;
+    pub fn len(&self) -> usize {
+        self.queens.len()
+    }
 
-                if x1 != x2 && y1 != y2 && (x1 as isize - x2 as isize).abs() != (y1 as isize - y2 as isize).abs() {
-                    score += 1.0;
-                }
+    pub fn evaluate(&mut self) -> f32 {
+        let mut nb_collisions = 0.0;
+        self.iter().enumerate().for_each(|(i, queen1)| {
+            self.iter().skip(i + 1).for_each(|queen2| {
+                nb_collisions += queen1.intersect(queen2);
+            });
+        });
+
+        let max_collisions = (self.len() * (self.len() - 1) / 2) as f32;
+        self.fitness = (max_collisions - nb_collisions) / max_collisions;
+        self.fitness
+    }
+
+    fn select(
+        &self,
+        ids: &[usize],
+        fitnesses: &[f32],
+        total_fitness: f32,
+        rng: &mut dyn RngCore,
+    ) -> &Queen {
+        // Roulette wheel selection
+        // https://en.wikipedia.org/wiki/Fitness_proportionate_selection
+        let mut pick = rng.gen_range(0.0..total_fitness);
+        for (i, &fitness) in (0..ids.len()).zip(fitnesses) {
+            pick -= fitness;
+            if pick <= 0.0 {
+                return &self.queens[ids[i]];
             }
         }
-        score / (self.queens.len() * (self.queens.len() - 1) / 2) as f32
+        &self.queens[0]
     }
 
     pub fn crossover(&mut self, rng: &mut dyn RngCore) {
-        let fitnesses = self.queens.iter().map(|q| q.fitness(&self.queens)).collect::<Vec<f32>>();
-        let mean = fitnesses.iter().sum::<f32>() / fitnesses.len() as f32;
-        let var = fitnesses.iter().map(|f| (f - mean).powi(2)).sum::<f32>() / fitnesses.len() as f32;
-        let ids = (0..self.queens.len()).filter(|&i| (fitnesses[i] - mean).abs() > var).collect::<Vec<usize>>();
-
-        let len = self.queens.len();
-        let mut new_queens = Vec::with_capacity(len);
-        for _ in 0..len {
-            let i1 = ids[rng.gen_range(0..ids.len())];
-            let i2 = ids[rng.gen_range(0..ids.len())];
-            let parent1 = &self.queens[i1];
-            let parent2 = &self.queens[i2];
-            new_queens.push(Queen::crossover(parent1, parent2, rng));
+        if self.fitness == 1.0 {
+            return;
         }
-        self.queens = new_queens;
+
+        // Calculate fitnesses
+        let fitnesses = self
+            .queens
+            .iter()
+            .map(|q| q.fitness(&self.queens))
+            .collect::<Vec<f32>>();
+
+        let total_fitness = fitnesses.iter().sum::<f32>();
+
+        // Calculate mean and variance of fitnesses
+        let mean = total_fitness / fitnesses.len() as f32;
+        let var =
+            fitnesses.iter().map(|f| (f - mean).powi(2)).sum::<f32>() / fitnesses.len() as f32;
+
+        // Select elitist ids of queens to crossover
+        let ids = (0..self.queens.len())
+            .filter(|&i| (fitnesses[i] - mean).abs() > var)
+            .collect::<Vec<usize>>();
+
+        // Crossover between best queens
+        let len = self.queens.len();
+        let mut taken_positions = HashSet::new();
+        let mut childs = Vec::with_capacity(len);
+        (0..len).for_each(|_| {
+            let parent1 = self.select(&ids, &fitnesses, total_fitness, rng);
+            let parent2 = self.select(&ids, &fitnesses, total_fitness, rng);
+            let child = Queen::crossover(parent1, parent2, rng);
+            taken_positions.insert(child.position());
+            childs.push(child);
+        });
+        self.queens = childs;
     }
 
     pub fn mutate(&mut self, rng: &mut dyn RngCore, board_size: usize) {
+        if self.fitness == 1.0 {
+            return;
+        }
+
         self.queens.iter_mut().for_each(|queen| {
             queen.mutate(rng, board_size);
         });
+    }
+
+    pub fn fitness(&self) -> f32 {
+        self.fitness
     }
 }
